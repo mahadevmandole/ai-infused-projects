@@ -17,6 +17,7 @@ datasets/
 
 # Node
 node_modules/
+.pnpm-store/
 dist/
 
 # IDE

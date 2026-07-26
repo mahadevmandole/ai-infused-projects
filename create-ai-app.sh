@@ -1,137 +1,73 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-# ==========================================================
-# Create AI Application Structure
-#
-# Usage:
-#   ./create-ai-app.sh chatbot
-#   ./create-ai-app.sh invoice-rag
-# ==========================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-APP_NAME=$1
+source "$SCRIPT_DIR/scripts/lib/utils.sh"
+source "$SCRIPT_DIR/scripts/lib/constants.sh"
+source "$SCRIPT_DIR/scripts/lib/config.sh"
+source "$SCRIPT_DIR/scripts/lib/create_structure.sh"
 
-if [ -z "$APP_NAME" ]; then
-    echo "Usage: ./create-ai-app.sh <app-name>"
-    exit 1
-fi
+usage() {
+    cat <<USAGE
+Usage: pnpm create:app <app-name>
+       bash scripts/new-ai-project.sh <app-name>
 
-APP_DIR="apps/$APP_NAME"
-
-if [ -d "$APP_DIR" ]; then
-    echo "❌ $APP_NAME already exists."
-    exit 1
-fi
-
-echo "🚀 Creating AI application: $APP_NAME"
-
-# ----------------------------------------------------------
-# Root folders
-# ----------------------------------------------------------
-
-mkdir -p "$APP_DIR"/{
-frontend,
-backend,
-ml,
-configs,
-data,
-docker,
-tests,
-scripts,
-docs
+Creates a runnable AI project under apps/<app-name> with:
+  - backend: FastAPI
+  - ai: shared Python package for agents and RAG
+  - frontend: React + TypeScript + SCSS on webpack
+USAGE
 }
 
-# ----------------------------------------------------------
-# Backend
-# ----------------------------------------------------------
-
-mkdir -p "$APP_DIR"/backend/{
-app,
-api,
-core,
-db,
-services,
-middleware,
-schemas,
-routers,
-utils
+slugify() {
+    echo "$1" \
+        | tr '[:upper:]' '[:lower:]' \
+        | sed -E 's/[^a-z0-9]+/_/g; s/^_+//; s/_+$//'
 }
 
-touch "$APP_DIR"/backend/app/__init__.py
-touch "$APP_DIR"/backend/api/__init__.py
-touch "$APP_DIR"/backend/core/__init__.py
-touch "$APP_DIR"/backend/services/__init__.py
+main() {
+    if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+        usage
+        exit 0
+    fi
 
-# ----------------------------------------------------------
-# ML
-# ----------------------------------------------------------
+    local RAW_APP_NAME="${1:-}"
+    if [ -z "$RAW_APP_NAME" ]; then
+        usage
+        die "App name is required."
+    fi
 
-mkdir -p "$APP_DIR"/ml/{
-models,
-training,
-inference,
-pipelines,
-evaluation,
-embeddings,
-prompts,
-agents,
-rag,
-vectorstores,
-datasets,
-artifacts,
-notebooks,
-experiments,
-utils
+    local APP_NAME
+    APP_NAME="$(slugify "$RAW_APP_NAME")"
+
+    if [ -z "$APP_NAME" ]; then
+        die "App name must contain at least one letter or number."
+    fi
+
+    if ! command -v pnpm >/dev/null 2>&1; then
+        log_warning "pnpm is not on PATH. Use corepack pnpm or activate pnpm before running frontend commands."
+    fi
+
+    if ! command -v uv >/dev/null 2>&1; then
+        log_warning "uv is not on PATH. Install or activate uv before running backend commands."
+    fi
+
+    load_config
+
+    if [ -d "$APPS_DIR/$APP_NAME" ]; then
+        die "App already exists: apps/$APP_NAME"
+    fi
+
+    create_structure "$APP_NAME"
+
+    log_success "Created apps/$APP_NAME"
+    log_info "Next steps:"
+    log_info "  uv sync"
+    log_info "  pnpm install"
+    log_info "  pnpm --filter @apps/$APP_NAME-frontend dev"
+    log_info "  uv run uvicorn apps.$APP_NAME.backend.app.main:app --reload"
 }
 
-touch "$APP_DIR"/ml/__init__.py
-touch "$APP_DIR"/ml/utils/__init__.py
-
-# ----------------------------------------------------------
-# Docker
-# ----------------------------------------------------------
-
-touch "$APP_DIR"/docker/{
-backend.Dockerfile,
-frontend.Dockerfile,
-docker-compose.yml
-}
-
-# ----------------------------------------------------------
-# Config
-# ----------------------------------------------------------
-
-touch "$APP_DIR"/configs/{
-development.yaml,
-staging.yaml,
-production.yaml
-}
-
-# ----------------------------------------------------------
-# Environment
-# ----------------------------------------------------------
-
-touch "$APP_DIR"/.env.example
-touch "$APP_DIR"/README.md
-
-echo "📦 Initializing Python project..."
-
-cd "$APP_DIR"
-
-uv init --package
-uv venv
-
-echo ""
-echo "=================================================="
-echo "✅ AI application created successfully!"
-echo "=================================================="
-echo ""
-echo "Location:"
-echo "  $APP_DIR"
-echo ""
-echo "Next:"
-echo "  cd $APP_DIR"
-echo "  source .venv/bin/activate"
-echo "  uv add fastapi uvicorn pydantic python-dotenv httpx loguru"
-echo "  uv add --dev pytest ruff mypy ipykernel"
+main "$@"
