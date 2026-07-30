@@ -2,5 +2,8 @@ packages:
   - "apps/*/frontend"
   - "apps/*/backend"
   - "packages/*"
+  - "packages/frontend"
+  - "packages/backend"
+  - "packages/ai"
 allowBuilds:
   '@parcel/watcher': true

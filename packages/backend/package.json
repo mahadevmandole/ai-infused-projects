@@ -1,0 +1,9 @@
+{
+  "name": "@ai-infused-projects/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.py",
+  "scripts": {
+    "build": "echo 'backend package placeholder'"
+  }
+}
