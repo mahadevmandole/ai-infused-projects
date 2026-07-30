@@ -10,7 +10,8 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "test": "uv run pytest",
-    "create:app": "bash ./create-ai-app.sh"
+    "create:app": "bash ./create-ai-app.sh",
+    "dev:app": "bash ./scripts/run-app.sh"
   },
   "keywords": [],
   "author": "",

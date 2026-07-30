@@ -16,13 +16,7 @@ create_structure() {
     create_dir "$APP_DIR/backend"
     create_dir "$APP_DIR/frontend"
     create_dir "$APP_DIR/ai"
-
-    create_dir "$APP_DIR/configs"
-    create_dir "$APP_DIR/data"
-    create_dir "$APP_DIR/docker"
     create_dir "$APP_DIR/tests"
-    create_dir "$APP_DIR/scripts"
-    create_dir "$APP_DIR/docs"
 
     # Backend
     create_dir "$APP_DIR/backend/app"
@@ -83,16 +77,34 @@ Runnable AI project boilerplate with a FastAPI backend, shared AI package, and R
 \`\`\`bash
 uv sync
 pnpm install
-uv run uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --reload --port 8000
-pnpm --filter @apps/$APP_NAME-frontend dev
+pnpm dev:app $APP_NAME
 \`\`\`
 
+This starts both the backend and frontend through Turbo using the app-specific filters.
+You can also list or pick an app interactively with \`pnpm dev:app --list\` or \`pnpm dev:app\`.
 The frontend dev server proxies \`/api\` to \`http://localhost:8000\`.
 "
 
     write_file "$APP_DIR/.env.example" "APP_NAME=$APP_NAME
 API_HOST=0.0.0.0
 API_PORT=8000
+
+# AI provider: mock, openai, groq, or gemini
+AI_PROVIDER=mock
+AI_TEMPERATURE=0.2
+AI_MAX_OUTPUT_TOKENS=800
+
+# OpenAI
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
+
+# Groq
+GROQ_API_KEY=
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# Gemini
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 "
 
     write_file "$APPS_DIR/__init__.py" ""
@@ -108,34 +120,100 @@ uv run uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --reload --port 8000
 \`\`\`
 "
 
+    write_file "$APP_DIR/backend/package.json" "{
+  \"name\": \"@apps/$APP_NAME-backend\",
+  \"private\": true,
+  \"version\": \"0.1.0\",
+  \"scripts\": {
+    \"dev\": \"uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --reload --port 8000\",
+    \"start\": \"uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --host 0.0.0.0 --port 8000\"
+  }
+}
+"
+
     write_file "$APP_DIR/backend/app/__init__.py" ""
     write_file "$APP_DIR/backend/app/api/__init__.py" ""
     write_file "$APP_DIR/backend/app/core/__init__.py" ""
     write_file "$APP_DIR/backend/app/services/__init__.py" ""
-    write_file "$APP_DIR/backend/app/core/config.py" "from pydantic import BaseModel
+    write_file "$APP_DIR/backend/app/core/config.py" "import os
+from pathlib import Path
+from typing import Literal
+
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+
+from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelConfig, ProviderName
+
+APP_DIR = Path(__file__).resolve().parents[3]
+load_dotenv(APP_DIR / \".env\")
 
 
 class Settings(BaseModel):
-    app_name: str = \"$APP_NAME\"
+    app_name: str = Field(default_factory=lambda: os.getenv(\"APP_NAME\", \"$APP_NAME\"))
     api_prefix: str = \"/api\"
+    ai_provider: Literal[\"mock\", \"openai\", \"groq\", \"gemini\"] = Field(
+        default_factory=lambda: os.getenv(\"AI_PROVIDER\", \"mock\").lower()
+    )
+    ai_temperature: float = Field(default_factory=lambda: float(os.getenv(\"AI_TEMPERATURE\", \"0.2\")))
+    ai_max_output_tokens: int = Field(
+        default_factory=lambda: int(os.getenv(\"AI_MAX_OUTPUT_TOKENS\", \"800\"))
+    )
+    openai_api_key: str | None = Field(default_factory=lambda: os.getenv(\"OPENAI_API_KEY\"))
+    openai_model: str = Field(default_factory=lambda: os.getenv(\"OPENAI_MODEL\", \"gpt-4.1-mini\"))
+    groq_api_key: str | None = Field(default_factory=lambda: os.getenv(\"GROQ_API_KEY\"))
+    groq_model: str = Field(
+        default_factory=lambda: os.getenv(\"GROQ_MODEL\", \"llama-3.3-70b-versatile\")
+    )
+    gemini_api_key: str | None = Field(default_factory=lambda: os.getenv(\"GEMINI_API_KEY\"))
+    gemini_model: str = Field(default_factory=lambda: os.getenv(\"GEMINI_MODEL\", \"gemini-2.5-flash\"))
+
+    def model_config_for_provider(self) -> ModelConfig:
+        provider: ProviderName = self.ai_provider
+        model_by_provider = {
+            \"mock\": \"mock-model\",
+            \"openai\": self.openai_model,
+            \"groq\": self.groq_model,
+            \"gemini\": self.gemini_model,
+        }
+        api_key_by_provider = {
+            \"mock\": None,
+            \"openai\": self.openai_api_key,
+            \"groq\": self.groq_api_key,
+            \"gemini\": self.gemini_api_key,
+        }
+        return ModelConfig(
+            provider=provider,
+            model=model_by_provider[provider],
+            api_key=api_key_by_provider[provider],
+            temperature=self.ai_temperature,
+            max_output_tokens=self.ai_max_output_tokens,
+        )
 
 
 settings = Settings()
 "
 
     write_file "$APP_DIR/backend/app/services/ai_service.py" "from apps.$PY_PACKAGE_NAME.ai.agents.simple_agent import SimpleAgent
+from apps.$PY_PACKAGE_NAME.ai.models.clients import build_model_client
 from apps.$PY_PACKAGE_NAME.ai.rag.simple_rag import SimpleRag
+from apps.$PY_PACKAGE_NAME.backend.app.core.config import settings
 
 
 class AiService:
     def __init__(self) -> None:
-        self.agent = SimpleAgent()
+        self.model_client = build_model_client(settings.model_config_for_provider())
+        self.agent = SimpleAgent(model_client=self.model_client)
         self.rag = SimpleRag()
 
     def answer(self, prompt: str) -> dict[str, str]:
         context = self.rag.retrieve(prompt)
         answer = self.agent.run(prompt=prompt, context=context)
-        return {\"answer\": answer, \"context\": context}
+        return {
+            \"answer\": answer,
+            \"context\": context,
+            \"provider\": settings.ai_provider,
+            \"model\": self.model_client.model,
+        }
 "
 
     write_file "$APP_DIR/backend/app/api/routes.py" "from fastapi import APIRouter
@@ -151,13 +229,20 @@ class PromptRequest(BaseModel):
     prompt: str
 
 
+class PromptResponse(BaseModel):
+    answer: str
+    context: str
+    provider: str
+    model: str
+
+
 @router.get(\"/health\")
 def health() -> dict[str, str]:
     return {\"status\": \"ok\", \"service\": \"$APP_NAME\"}
 
 
 @router.post(\"/ask\")
-def ask(request: PromptRequest) -> dict[str, str]:
+def ask(request: PromptRequest) -> PromptResponse:
     return ai_service.answer(request.prompt)
 "
 
@@ -184,15 +269,148 @@ app.include_router(router, prefix=settings.api_prefix)
 
 Shared Python code for agents, RAG, prompts, embeddings, vector stores, and evaluation.
 The backend imports this package directly and uses the repo-level \`.venv\`.
+
+## Model Providers
+
+Copy \`.env.example\` to \`.env\`, then choose one provider:
+
+\`\`\`bash
+AI_PROVIDER=openai
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4.1-mini
+\`\`\`
+
+Supported provider values are \`mock\`, \`openai\`, \`groq\`, and \`gemini\`.
 "
 
     write_file "$APP_DIR/ai/__init__.py" ""
     write_file "$APP_DIR/ai/agents/__init__.py" ""
+    write_file "$APP_DIR/ai/models/__init__.py" "from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelConfig, ModelClient, build_model_client
+
+__all__ = [\"ModelConfig\", \"ModelClient\", \"build_model_client\"]
+"
     write_file "$APP_DIR/ai/rag/__init__.py" ""
     write_file "$APP_DIR/ai/utils/__init__.py" ""
-    write_file "$APP_DIR/ai/agents/simple_agent.py" "class SimpleAgent:
+    write_file "$APP_DIR/ai/agents/simple_agent.py" "from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelClient
+
+
+class SimpleAgent:
+    def __init__(self, model_client: ModelClient) -> None:
+        self.model_client = model_client
+
     def run(self, prompt: str, context: str) -> str:
+        return self.model_client.generate(prompt=prompt, context=context)
+"
+
+    write_file "$APP_DIR/ai/models/clients.py" "from dataclasses import dataclass
+from typing import Literal, Protocol
+
+ProviderName = Literal[\"mock\", \"openai\", \"groq\", \"gemini\"]
+
+
+@dataclass(frozen=True)
+class ModelConfig:
+    provider: ProviderName
+    model: str
+    api_key: str | None = None
+    temperature: float = 0.2
+    max_output_tokens: int = 800
+
+
+class ModelClient(Protocol):
+    model: str
+
+    def generate(self, prompt: str, context: str) -> str:
+        ...
+
+
+class MockModelClient:
+    def __init__(self, config: ModelConfig) -> None:
+        self.model = config.model
+
+    def generate(self, prompt: str, context: str) -> str:
         return f\"Starter answer for '{prompt}'. Retrieved context: {context}\"
+
+
+class OpenAIModelClient:
+    def __init__(self, config: ModelConfig) -> None:
+        if not config.api_key:
+            raise ValueError(\"OPENAI_API_KEY is required when AI_PROVIDER=openai.\")
+
+        from openai import OpenAI
+
+        self.model = config.model
+        self.temperature = config.temperature
+        self.max_output_tokens = config.max_output_tokens
+        self.client = OpenAI(api_key=config.api_key)
+
+    def generate(self, prompt: str, context: str) -> str:
+        response = self.client.responses.create(
+            model=self.model,
+            input=_build_input(prompt=prompt, context=context),
+            temperature=self.temperature,
+            max_output_tokens=self.max_output_tokens,
+        )
+        return response.output_text
+
+
+class GroqModelClient:
+    def __init__(self, config: ModelConfig) -> None:
+        if not config.api_key:
+            raise ValueError(\"GROQ_API_KEY is required when AI_PROVIDER=groq.\")
+
+        from groq import Groq
+
+        self.model = config.model
+        self.temperature = config.temperature
+        self.max_output_tokens = config.max_output_tokens
+        self.client = Groq(api_key=config.api_key)
+
+    def generate(self, prompt: str, context: str) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {\"role\": \"system\", \"content\": \"Answer using the provided context when useful.\"},
+                {\"role\": \"user\", \"content\": _build_input(prompt=prompt, context=context)},
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_output_tokens,
+        )
+        return response.choices[0].message.content or \"\"
+
+
+class GeminiModelClient:
+    def __init__(self, config: ModelConfig) -> None:
+        if not config.api_key:
+            raise ValueError(\"GEMINI_API_KEY is required when AI_PROVIDER=gemini.\")
+
+        from google import genai
+
+        self.model = config.model
+        self.temperature = config.temperature
+        self.max_output_tokens = config.max_output_tokens
+        self.client = genai.Client(api_key=config.api_key)
+
+    def generate(self, prompt: str, context: str) -> str:
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=_build_input(prompt=prompt, context=context),
+        )
+        return response.text or \"\"
+
+
+def build_model_client(config: ModelConfig) -> ModelClient:
+    if config.provider == \"openai\":
+        return OpenAIModelClient(config)
+    if config.provider == \"groq\":
+        return GroqModelClient(config)
+    if config.provider == \"gemini\":
+        return GeminiModelClient(config)
+    return MockModelClient(config)
+
+
+def _build_input(prompt: str, context: str) -> str:
+    return f\"Context:\\n{context}\\n\\nPrompt:\\n{prompt}\"
 "
 
     write_file "$APP_DIR/ai/rag/simple_rag.py" "class SimpleRag:
@@ -326,6 +544,8 @@ root.render(<App />);
 type AskResponse = {
   answer: string;
   context: string;
+  provider: string;
+  model: string;
 };
 
 export function App() {
@@ -374,6 +594,10 @@ export function App() {
           <div className=\"result-panel\">
             <h2>Answer</h2>
             <p>{response.answer}</p>
+            <h2>Model</h2>
+            <p>
+              {response.provider} / {response.model}
+            </p>
             <h2>Retrieved context</h2>
             <p>{response.context}</p>
           </div>
@@ -507,5 +731,15 @@ def test_health() -> None:
 
     assert response.status_code == 200
     assert response.json()[\"status\"] == \"ok\"
+
+
+def test_ask_uses_configured_model_client() -> None:
+    response = TestClient(app).post(\"/api/ask\", json={\"prompt\": \"Hello\"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[\"provider\"] == \"mock\"
+    assert body[\"model\"] == \"mock-model\"
+    assert \"Starter answer\" in body[\"answer\"]
 "
 }

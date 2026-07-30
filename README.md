@@ -21,8 +21,14 @@ This creates `apps/my-ai-project` with runnable starter code.
 ```bash
 uv sync
 pnpm install
-uv run uvicorn apps.my_ai_project.backend.app.main:app --reload --port 8000
-pnpm --filter @apps/my-ai-project-frontend dev
+pnpm dev:app my-ai-project
+```
+
+You can also list the available apps or choose one interactively:
+
+```bash
+pnpm dev:app --list
+pnpm dev:app
 ```
 
 The frontend runs on `http://localhost:3000` and proxies `/api` to FastAPI on port `8000`.
