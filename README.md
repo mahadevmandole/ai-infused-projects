@@ -6,6 +6,12 @@ Monorepo for small AI apps. Each app lives under `apps/<app-name>` and contains:
 - `ai`: project-specific agents, RAG, prompts, embeddings, and model utilities
 - `frontend`: React + TypeScript + SCSS, bundled with webpack rather than Vite
 
+Reusable code should live under `packages/` in one of these shared areas:
+
+- `packages/frontend`: shared UI components, hooks, and utilities
+- `packages/backend`: shared API helpers, services, and domain logic
+- `packages/ai`: shared agents, prompts, and model integrations
+
 The backend and AI code share the repo-level Python environment managed by `uv`.
 
 ## Create An App
