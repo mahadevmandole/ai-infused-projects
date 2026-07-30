@@ -1,8 +1,16 @@
+import sys
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.starter_ai_app.backend.app.api.routes import router
 from apps.starter_ai_app.backend.app.core.config import settings
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 
 app = FastAPI(title=settings.app_name)
 

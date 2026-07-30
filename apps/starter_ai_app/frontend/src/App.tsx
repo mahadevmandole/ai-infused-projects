@@ -3,6 +3,8 @@ import { useState } from "react";
 type AskResponse = {
   answer: string;
   context: string;
+  provider: string;
+  model: string;
 };
 
 export function App() {
@@ -51,6 +53,10 @@ export function App() {
           <div className="result-panel">
             <h2>Answer</h2>
             <p>{response.answer}</p>
+            <h2>Model</h2>
+            <p>
+              {response.provider} / {response.model}
+            </p>
             <h2>Retrieved context</h2>
             <p>{response.context}</p>
           </div>
