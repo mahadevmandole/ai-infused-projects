@@ -1,7 +1,7 @@
 from packages.ai.src.agent import SimpleAgent
 from packages.ai.src.model_client import build_model_client
 from packages.ai.src.rag import SimpleRag
-from apps.starter_ai_app.backend.app.core.config import settings
+from packages.backend.src.settings import settings
 
 
 class AiService:

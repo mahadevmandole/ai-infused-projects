@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.starter_ai_app.backend.app.api.routes import router
-from apps.starter_ai_app.backend.app.core.config import settings
+from packages.backend.src.settings import settings
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(REPO_ROOT) not in sys.path:
