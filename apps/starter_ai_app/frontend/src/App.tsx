@@ -1,30 +1,10 @@
 import { useState } from "react";
 
-type AskResponse = {
-  answer: string;
-  context: string;
-  provider: string;
-  model: string;
-};
+import { useAsk} from "./hooks/useAsk";
 
 export function App() {
   const [prompt, setPrompt] = useState("What can this starter app do?");
-  const [response, setResponse] = useState<AskResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function askBackend() {
-    setLoading(true);
-    try {
-      const result = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      setResponse(await result.json());
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { askBackend, response, loading } = useAsk();
 
   return (
     <main className="app-shell">
@@ -45,7 +25,7 @@ export function App() {
           rows={5}
         />
 
-        <button type="button" onClick={askBackend} disabled={loading || !prompt.trim()}>
+        <button type="button" onClick={() => void askBackend(prompt)} disabled={loading || !prompt.trim()}>
           {loading ? "Asking..." : "Ask"}
         </button>
 
