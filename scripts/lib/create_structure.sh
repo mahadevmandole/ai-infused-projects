@@ -516,6 +516,13 @@ module.exports = {
 
     create_dir "$APP_DIR/frontend/public"
     create_dir "$APP_DIR/frontend/src"
+    create_dir "$APP_DIR/frontend/src/components"
+    create_dir "$APP_DIR/frontend/src/components/templates"
+    create_dir "$APP_DIR/frontend/src/components/organisms"
+    create_dir "$APP_DIR/frontend/src/components/molecules"
+    create_dir "$APP_DIR/frontend/src/components/atoms"
+    create_dir "$APP_DIR/frontend/src/utils"
+    create_dir "$APP_DIR/frontend/src/api"
 
     write_file "$APP_DIR/frontend/public/index.html" "<!doctype html>
 <html lang=\"en\">
@@ -532,40 +539,20 @@ module.exports = {
 
     write_file "$APP_DIR/frontend/src/main.tsx" "import { createRoot } from \"react-dom/client\";
 
-import { App } from \"./App\";
+import { App } from \"./components/templates/App\";
 import \"./styles.scss\";
 
 const root = createRoot(document.getElementById(\"root\") as HTMLElement);
 root.render(<App />);
 "
 
-    write_file "$APP_DIR/frontend/src/App.tsx" "import { useState } from \"react\";
+    write_file "$APP_DIR/frontend/src/components/templates/App.tsx" "import { useState } from \"react\";
 
-type AskResponse = {
-  answer: string;
-  context: string;
-  provider: string;
-  model: string;
-};
+import { useAsk } from \"../../api/useAsk\";
 
 export function App() {
   const [prompt, setPrompt] = useState(\"What can this starter app do?\");
-  const [response, setResponse] = useState<AskResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function askBackend() {
-    setLoading(true);
-    try {
-      const result = await fetch(\"/api/ask\", {
-        method: \"POST\",
-        headers: { \"Content-Type\": \"application/json\" },
-        body: JSON.stringify({ prompt }),
-      });
-      setResponse(await result.json());
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { askBackend, response, loading } = useAsk();
 
   return (
     <main className=\"app-shell\">
@@ -586,7 +573,7 @@ export function App() {
           rows={5}
         />
 
-        <button type=\"button\" onClick={askBackend} disabled={loading || !prompt.trim()}>
+        <button type=\"button\" onClick={() => void askBackend(prompt)} disabled={loading || !prompt.trim()}>
           {loading ? \"Asking...\" : \"Ask backend\"}
         </button>
 
@@ -605,6 +592,46 @@ export function App() {
       </section>
     </main>
   );
+}
+"
+
+    write_file "$APP_DIR/frontend/src/api/useAsk.ts" "import { useCallback, useState } from \"react\";
+
+import { buildApiUrl } from \"../utils/config\";
+
+type AskResponse = {
+  answer: string;
+  context: string;
+  provider: string;
+  model: string;
+};
+
+export function useAsk() {
+  const [response, setResponse] = useState<AskResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const askBackend = useCallback(async (prompt: string) => {
+    setLoading(true);
+    try {
+      const result = await fetch(buildApiUrl(\"/api/ask\"), {
+        method: \"POST\",
+        headers: { \"Content-Type\": \"application/json\" },
+        body: JSON.stringify({ prompt }),
+      });
+      setResponse(await result.json());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { askBackend, response, loading };
+}
+"
+
+    write_file "$APP_DIR/frontend/src/utils/config.ts" "export const API_BASE_URL = \"http://localhost:8000\";
+
+export function buildApiUrl(path: string) {
+  return `${API_BASE_URL}${path.startsWith(\"/\") ? path : `/${path}`}`;
 }
 "
 
