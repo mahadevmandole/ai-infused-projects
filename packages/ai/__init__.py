@@ -1,12 +1,12 @@
-from .agent import SimpleAgent
-from .model_client import (
+from .src import (
+    SimpleAgent,
     MockModelClient,
     ModelConfig,
     ModelClient,
     ProviderName,
     build_model_client,
+    SimpleRag,
 )
-from .rag import SimpleRag
 
 __all__ = [
     "SimpleAgent",

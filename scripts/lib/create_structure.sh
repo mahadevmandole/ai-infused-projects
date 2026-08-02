@@ -142,7 +142,7 @@ from typing import Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelConfig, ProviderName
+from packages.ai import ModelConfig, ProviderName
 
 APP_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(APP_DIR / \".env\")
@@ -193,10 +193,8 @@ class Settings(BaseModel):
 settings = Settings()
 "
 
-    write_file "$APP_DIR/backend/app/services/ai_service.py" "from apps.$PY_PACKAGE_NAME.ai.agents.simple_agent import SimpleAgent
-from apps.$PY_PACKAGE_NAME.ai.models.clients import build_model_client
-from apps.$PY_PACKAGE_NAME.ai.rag.simple_rag import SimpleRag
-from apps.$PY_PACKAGE_NAME.backend.app.core.config import settings
+    write_file "$APP_DIR/backend/app/services/ai_service.py" "from packages.ai import SimpleAgent, build_model_client, SimpleRag
+from packages.backend import settings
 
 
 class AiService:
@@ -219,7 +217,7 @@ class AiService:
     write_file "$APP_DIR/backend/app/api/routes.py" "from fastapi import APIRouter
 from pydantic import BaseModel
 
-from apps.$PY_PACKAGE_NAME.backend.app.services.ai_service import AiService
+from packages.backend import AiService
 
 router = APIRouter()
 ai_service = AiService()
@@ -250,7 +248,7 @@ def ask(request: PromptRequest) -> PromptResponse:
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.$PY_PACKAGE_NAME.backend.app.api.routes import router
-from apps.$PY_PACKAGE_NAME.backend.app.core.config import settings
+from packages.backend import settings
 
 app = FastAPI(title=settings.app_name)
 
@@ -285,13 +283,13 @@ Supported provider values are \`mock\`, \`openai\`, \`groq\`, and \`gemini\`.
 
     write_file "$APP_DIR/ai/__init__.py" ""
     write_file "$APP_DIR/ai/agents/__init__.py" ""
-    write_file "$APP_DIR/ai/models/__init__.py" "from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelConfig, ModelClient, build_model_client
+    write_file "$APP_DIR/ai/models/__init__.py" "from packages.ai import ModelConfig, ModelClient, build_model_client
 
 __all__ = [\"ModelConfig\", \"ModelClient\", \"build_model_client\"]
 "
     write_file "$APP_DIR/ai/rag/__init__.py" ""
     write_file "$APP_DIR/ai/utils/__init__.py" ""
-    write_file "$APP_DIR/ai/agents/simple_agent.py" "from apps.$PY_PACKAGE_NAME.ai.models.clients import ModelClient
+    write_file "$APP_DIR/ai/agents/simple_agent.py" "from packages.ai import ModelClient
 
 
 class SimpleAgent:
@@ -422,6 +420,9 @@ def _build_input(prompt: str, context: str) -> str:
   \"name\": \"@apps/$APP_NAME-frontend\",
   \"private\": true,
   \"version\": \"0.1.0\",
+  \"main\": \"src/index.ts\",
+  \"module\": \"src/index.ts\",
+  \"types\": \"src/index.ts\",
   \"scripts\": {
     \"dev\": \"webpack serve --mode development\",
     \"build\": \"webpack --mode production\",
@@ -429,6 +430,7 @@ def _build_input(prompt: str, context: str) -> str:
     \"lint\": \"eslint src --ext .ts,.tsx\"
   },
   \"dependencies\": {
+    \"@ai-infused-projects/frontend\": \"workspace:*\",
     \"@types/react\": \"^18.3.31\",
     \"@types/react-dom\": \"^18.3.7\",
     \"css-loader\": \"^7.1.4\",
@@ -538,19 +540,24 @@ module.exports = {
 "
 
     write_file "$APP_DIR/frontend/src/main.tsx" "import { createRoot } from \"react-dom/client\";
+import { frontendSharedPlaceholder } from \"@ai-infused-projects/frontend\";
 
 import { App } from \"./components/templates/App\";
 import \"./styles.scss\";
 
 const root = createRoot(document.getElementById(\"root\") as HTMLElement);
-root.render(<App />);
+root.render(<App sharedText={frontendSharedPlaceholder} />);
 "
 
     write_file "$APP_DIR/frontend/src/components/templates/App.tsx" "import { useState } from \"react\";
 
 import { useAsk } from \"../../api/useAsk\";
 
-export function App() {
+interface AppProps {
+  sharedText: string;
+}
+
+export function App({ sharedText }: AppProps) {
   const [prompt, setPrompt] = useState(\"What can this starter app do?\");
   const { askBackend, response, loading } = useAsk();
 
@@ -561,6 +568,7 @@ export function App() {
           <div>
             <p className=\"eyebrow\">AI Project Starter</p>
             <h1>$APP_NAME</h1>
+            <p className=\"shared-text\">{sharedText}</p>
           </div>
           <span className=\"status-pill\">FastAPI + React</span>
         </div>

@@ -1,7 +1,5 @@
-from packages.ai.src.agent import SimpleAgent
-from packages.ai.src.model_client import MockModelClient, ModelConfig
-from packages.ai.src.rag import SimpleRag
-from packages.backend.src.ai_service import AiService
+from packages.ai import SimpleAgent, MockModelClient, ModelConfig, SimpleRag
+from packages.backend import AiService
 
 
 def test_shared_packages_expose_core_components() -> None:

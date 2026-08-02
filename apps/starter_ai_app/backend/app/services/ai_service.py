@@ -1,3 +1,3 @@
-from packages.backend.src.ai_service import AiService
+from packages.backend import AiService
 
 __all__ = ["AiService"]

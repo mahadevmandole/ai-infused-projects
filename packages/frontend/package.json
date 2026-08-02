@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "echo 'frontend package placeholder'"
   }

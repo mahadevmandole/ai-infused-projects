@@ -5,7 +5,7 @@ from typing import Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from packages.ai.src.model_client import ModelConfig, ProviderName
+from packages.ai import ModelConfig, ProviderName
 
 APP_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(APP_DIR / ".env")
