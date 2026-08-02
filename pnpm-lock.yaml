@@ -219,6 +219,9 @@ importers:
 
   apps/starter_ai_app/frontend:
     dependencies:
+      '@ai-infused-projects/frontend':
+        specifier: workspace:*
+        version: link:../../../packages/frontend
       '@types/react':
         specifier: ^18.3.31
         version: 18.3.31

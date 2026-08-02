@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from packages.backend.src.ai_service import AiService
+from packages.backend import AiService
 
 router = APIRouter()
 ai_service = AiService()

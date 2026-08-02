@@ -1,4 +1,4 @@
-from packages.ai.src.model_client import ModelClient
+from .model_client import ModelClient
 
 
 class SimpleAgent:

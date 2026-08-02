@@ -2,7 +2,11 @@ import { useState } from "react";
 
 import { useAsk } from "../../api/useAsk";
 
-export function App() {
+interface AppProps {
+  sharedText: string;
+}
+
+export function App({ sharedText }: AppProps) {
   const [prompt, setPrompt] = useState("What can this starter app do?");
   const { askBackend, response, loading } = useAsk();
 
@@ -13,6 +17,7 @@ export function App() {
           <div>
             <p className="eyebrow">AI Project Starter</p>
             <h1>Demo App</h1>
+            <p className="shared-text">{sharedText}</p>
           </div>
           <span className="status-pill">FastAPI + React</span>
         </div>
