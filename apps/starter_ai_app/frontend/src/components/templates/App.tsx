@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useAsk} from "./hooks/useAsk";
+import { useAsk } from "../../api/useAsk";
 
 export function App() {
   const [prompt, setPrompt] = useState("What can this starter app do?");

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-import { buildApiUrl } from "../config";
+import { buildApiUrl } from "../utils/config";
 
 type AskResponse = {
   answer: string;
