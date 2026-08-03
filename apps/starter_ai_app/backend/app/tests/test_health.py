@@ -2,9 +2,8 @@ import importlib
 import sys
 from pathlib import Path
 
+from app.main import app
 from fastapi.testclient import TestClient
-
-from apps.starter_ai_app.backend.app.main import app
 
 
 def test_health() -> None:
@@ -25,7 +24,7 @@ def test_ask_uses_configured_model_client() -> None:
 
 
 def test_main_module_imports_when_backend_is_started_from_backend_directory(monkeypatch) -> None:
-    backend_dir = Path(__file__).resolve().parents[1] / "backend"
+    backend_dir = Path(__file__).resolve().parents[2]
     monkeypatch.chdir(backend_dir)
     monkeypatch.setattr(sys, "path", [str(backend_dir)])
 

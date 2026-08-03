@@ -1,5 +1,7 @@
-from packages.ai import SimpleAgent, build_model_client, SimpleRag
-from .settings import settings
+from packages.ai import build_model_client
+
+from ...core.config import settings
+from .. import SimpleAgent, SimpleRag
 
 
 class AiService:
