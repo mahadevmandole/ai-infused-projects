@@ -2,6 +2,16 @@
 
 FastAPI app for project-specific HTTP APIs.
 
+Run the backend from the package root:
+
 ```bash
-uv run uvicorn apps.starter_ai_app.backend.app.main:app --reload --port 8000
+cd apps/starter_ai_app/backend
+pnpm test
+```
+
+Start the backend server:
+
+```bash
+cd apps/starter_ai_app/backend
+pnpm dev
 ```
