@@ -15,8 +15,7 @@ Usage: pnpm create:app <app-name>
        bash scripts/new-ai-project.sh <app-name>
 
 Creates a runnable AI project under apps/<app-name> with:
-  - backend: FastAPI
-  - ai: shared Python package for agents and RAG
+  - backend: FastAPI with app-local AI agents, RAG, services, and tests
   - frontend: React + TypeScript + SCSS on webpack
 USAGE
 }
@@ -66,8 +65,9 @@ main() {
     log_info "Next steps:"
     log_info "  uv sync"
     log_info "  pnpm install"
-    log_info "  pnpm --filter @apps/$APP_NAME-frontend dev"
-    log_info "  uv run uvicorn apps.$APP_NAME.backend.app.main:app --reload"
+    log_info "  cp apps/$APP_NAME/backend/.env.example apps/$APP_NAME/backend/.env"
+    log_info "  pnpm dev:app $APP_NAME backend"
+    log_info "  pnpm dev:app $APP_NAME frontend"
 }
 
 main "$@"

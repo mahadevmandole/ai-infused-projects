@@ -6,39 +6,29 @@ create_structure() {
 
     local APP_NAME="$1"
     local APP_DIR="apps/$APP_NAME"
-    local PY_PACKAGE_NAME="${APP_NAME//-/_}"
 
     log_info "Creating project structure..."
 
-    # Root
     create_dir "$APP_DIR"
-
     create_dir "$APP_DIR/backend"
-    create_dir "$APP_DIR/frontend"
-    create_dir "$APP_DIR/ai"
-    create_dir "$APP_DIR/tests"
-
-    # Backend
     create_dir "$APP_DIR/backend/app"
     create_dir "$APP_DIR/backend/app/api"
     create_dir "$APP_DIR/backend/app/core"
-    create_dir "$APP_DIR/backend/app/services"
-    create_dir "$APP_DIR/backend/api"
-    create_dir "$APP_DIR/backend/core"
-    create_dir "$APP_DIR/backend/db"
-    create_dir "$APP_DIR/backend/services"
-    create_dir "$APP_DIR/backend/schemas"
-    create_dir "$APP_DIR/backend/middleware"
-    create_dir "$APP_DIR/backend/utils"
+    create_dir "$APP_DIR/backend/app/ai"
+    create_dir "$APP_DIR/backend/app/ai/agents"
+    create_dir "$APP_DIR/backend/app/ai/rag"
+    create_dir "$APP_DIR/backend/app/ai/services"
+    create_dir "$APP_DIR/backend/app/tests"
 
-    # AI
-    create_dir "$APP_DIR/ai"
-    create_dir "$APP_DIR/ai/agents"
-    create_dir "$APP_DIR/ai/rag"
-    create_dir "$APP_DIR/ai/utils"
+    create_dir "$APP_DIR/frontend"
+    create_dir "$APP_DIR/frontend/public"
+    create_dir "$APP_DIR/frontend/src"
+    create_dir "$APP_DIR/frontend/src/api"
+    create_dir "$APP_DIR/frontend/src/components"
+    create_dir "$APP_DIR/frontend/src/components/templates"
+    create_dir "$APP_DIR/frontend/src/utils"
 
-    # Root files
-    write_project_files "$APP_NAME" "$APP_DIR" "$PY_PACKAGE_NAME"
+    write_project_files "$APP_NAME" "$APP_DIR"
 
     log_success "Project structure created."
 }
@@ -59,26 +49,19 @@ write_file() {
 write_project_files() {
     local APP_NAME="$1"
     local APP_DIR="$2"
-    local PY_PACKAGE_NAME="$3"
+    local APP_TITLE="${APP_NAME//_/ }"
 
-    write_file "$APP_DIR/README.md" "# $APP_NAME
+    write_file "$APPS_DIR/__init__.py" ""
+    write_file "$APP_DIR/__init__.py" ""
+    write_file "$APP_DIR/backend/__init__.py" ""
+    write_file "$APP_DIR/backend/app/__init__.py" ""
+    write_file "$APP_DIR/backend/app/api/__init__.py" ""
+    write_file "$APP_DIR/backend/app/core/__init__.py" ""
+    write_file "$APP_DIR/backend/app/ai/agents/__init__.py" ""
+    write_file "$APP_DIR/backend/app/ai/rag/__init__.py" ""
+    write_file "$APP_DIR/backend/app/ai/services/__init__.py" ""
 
-Runnable AI project boilerplate with a FastAPI backend, shared AI package, and React + TypeScript + SCSS frontend.
-
-## Run
-
-\`\`\`bash
-uv sync
-pnpm install
-pnpm dev:app $APP_NAME
-\`\`\`
-
-This starts both the backend and frontend through Turbo using the app-specific filters.
-You can also list or pick an app interactively with \`pnpm dev:app --list\` or \`pnpm dev:app\`.
-The frontend dev server proxies \`/api\` to \`http://localhost:8000\`.
-"
-
-    write_file "$APP_DIR/.env.example" "APP_NAME=$APP_NAME
+    write_file "$APP_DIR/backend/.env.example" "APP_NAME=$APP_NAME
 API_HOST=0.0.0.0
 API_PORT=8000
 
@@ -100,41 +83,32 @@ GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
 "
 
-    write_file "$APPS_DIR/__init__.py" ""
-    write_file "$APP_DIR/__init__.py" ""
-    write_file "$APP_DIR/backend/__init__.py" ""
-
     write_file "$APP_DIR/backend/README.md" "# Backend
 
 FastAPI app for project-specific HTTP APIs.
 
+Run the backend tests from the package root:
+
 \`\`\`bash
-uv run uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --reload --port 8000
+cd apps/$APP_NAME/backend
+PYTHONPATH=. uv run pytest app/tests
+\`\`\`
+
+Start the backend server:
+
+\`\`\`bash
+pnpm dev:app $APP_NAME backend
 \`\`\`
 "
 
-    write_file "$APP_DIR/backend/package.json" "{
-  \"name\": \"@apps/$APP_NAME-backend\",
-  \"private\": true,
-  \"version\": \"0.1.0\",
-  \"scripts\": {
-    \"dev\": \"uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --reload --port 8000\",
-    \"start\": \"uvicorn apps.$PY_PACKAGE_NAME.backend.app.main:app --host 0.0.0.0 --port 8000\"
-  }
-}
-"
-
-    write_file "$APP_DIR/backend/app/__init__.py" ""
-    write_file "$APP_DIR/backend/app/api/__init__.py" ""
-    write_file "$APP_DIR/backend/app/core/__init__.py" ""
-    write_file "$APP_DIR/backend/app/services/__init__.py" ""
     write_file "$APP_DIR/backend/app/core/config.py" "import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from packages.ai.settings import Settings
 
-APP_DIR = Path(__file__).resolve().parents[3]
+from packages.ai import Settings
+
+APP_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(APP_DIR / \".env\")
 
 settings = Settings(
@@ -149,10 +123,39 @@ settings = Settings(
     gemini_api_key=os.getenv(\"GEMINI_API_KEY\"),
     gemini_model=os.getenv(\"GEMINI_MODEL\", \"gemini-2.5-flash\"),
 )
+
+__all__ = [\"settings\"]
 "
 
-    write_file "$APP_DIR/backend/app/services/ai_service.py" "from apps.$PY_PACKAGE_NAME.ai import SimpleAgent, build_model_client, SimpleRag
-from apps.$PY_PACKAGE_NAME.backend.app.core.config import settings
+    write_file "$APP_DIR/backend/app/ai/__init__.py" "from .agents.simple_agent import SimpleAgent
+from .rag.simple_rag import SimpleRag
+
+__all__ = [
+    \"SimpleAgent\",
+    \"SimpleRag\",
+]
+"
+
+    write_file "$APP_DIR/backend/app/ai/agents/simple_agent.py" "from packages.ai import ModelClient
+
+
+class SimpleAgent:
+    def __init__(self, model_client: ModelClient) -> None:
+        self.model_client = model_client
+
+    def run(self, prompt: str, context: str) -> str:
+        return self.model_client.generate(prompt=prompt, context=context)
+"
+
+    write_file "$APP_DIR/backend/app/ai/rag/simple_rag.py" "class SimpleRag:
+    def retrieve(self, query: str) -> str:
+        return f\"No vector store configured yet for query: {query}\"
+"
+
+    write_file "$APP_DIR/backend/app/ai/services/ai_service.py" "from packages.ai import build_model_client
+
+from ...core.config import settings
+from .. import SimpleAgent, SimpleRag
 
 
 class AiService:
@@ -175,7 +178,7 @@ class AiService:
     write_file "$APP_DIR/backend/app/api/routes.py" "from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .services.ai_service import AiService
+from ..ai.services.ai_service import AiService
 
 router = APIRouter()
 ai_service = AiService()
@@ -205,8 +208,8 @@ def ask(request: PromptRequest) -> PromptResponse:
     write_file "$APP_DIR/backend/app/main.py" "from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.$PY_PACKAGE_NAME.backend.app.api.routes import router
-from apps.$PY_PACKAGE_NAME.backend.app.core.config import settings
+from .api.routes import router
+from .core.config import settings
 
 app = FastAPI(title=settings.app_name)
 
@@ -221,59 +224,84 @@ app.add_middleware(
 app.include_router(router, prefix=settings.api_prefix)
 "
 
-    write_file "$APP_DIR/ai/README.md" "# AI
+    write_file "$APP_DIR/backend/app/tests/test_health.py" "import importlib
+import sys
+from pathlib import Path
 
-Shared Python code for agents, RAG, prompts, embeddings, vector stores, and evaluation.
-The backend imports this package directly and uses the repo-level \`.venv\`.
+from app.main import app
+from fastapi.testclient import TestClient
 
-## Model Providers
 
-Copy \`.env.example\` to \`.env\`, then choose one provider:
+def test_health() -> None:
+    response = TestClient(app).get(\"/api/health\")
+
+    assert response.status_code == 200
+    assert response.json()[\"status\"] == \"ok\"
+
+
+def test_ask_uses_configured_model_client() -> None:
+    response = TestClient(app).post(\"/api/ask\", json={\"prompt\": \"Hello\"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[\"provider\"] == \"mock\"
+    assert body[\"model\"] == \"mock-model\"
+    assert \"Starter answer\" in body[\"answer\"]
+
+
+def test_main_module_imports_when_backend_is_started_from_backend_directory(monkeypatch) -> None:
+    backend_dir = Path(__file__).resolve().parents[2]
+    monkeypatch.chdir(backend_dir)
+    monkeypatch.setattr(sys, \"path\", [str(backend_dir)])
+
+    for module_name in [\"app.main\", \"apps.$APP_NAME.backend.app.main\"]:
+        sys.modules.pop(module_name, None)
+
+    imported_main = importlib.import_module(\"app.main\")
+
+    assert imported_main.app is not None
+"
+
+    write_file "$APP_DIR/backend/app/tests/test_shared_packages.py" "from app.ai import SimpleAgent, SimpleRag
+from app.ai.services.ai_service import AiService
+
+from packages.ai import MockModelClient, ModelConfig
+
+
+def test_shared_packages_expose_core_components() -> None:
+    model = MockModelClient(ModelConfig(provider=\"mock\", model=\"mock-model\"))
+    agent = SimpleAgent(model_client=model)
+    rag = SimpleRag()
+
+    assert (
+        agent.run(prompt=\"hello\", context=\"context\")
+        == \"Starter answer for 'hello'. Retrieved context: context\"
+    )
+    assert rag.retrieve(\"hello\") == \"No vector store configured yet for query: hello\"
+
+    service = AiService()
+    response = service.answer(\"hello\")
+
+    assert response[\"provider\"] == \"mock\"
+    assert response[\"model\"] == \"mock-model\"
+"
+
+    write_file "$APP_DIR/frontend/README.md" "# $APP_NAME
+
+Runnable AI project boilerplate with a FastAPI backend, shared AI package, and React + TypeScript + SCSS frontend.
+
+## Run
 
 \`\`\`bash
-AI_PROVIDER=openai
-OPENAI_API_KEY=...
-OPENAI_MODEL=gpt-4.1-mini
+pnpm install
+pnpm --filter @apps/$APP_NAME-frontend dev
 \`\`\`
-
-Supported provider values are \`mock\`, \`openai\`, \`groq\`, and \`gemini\`.
-"
-
-    write_file "$APP_DIR/ai/__init__.py" "from .agents.simple_agent import SimpleAgent
-from .rag.simple_rag import SimpleRag
-
-__all__ = [
-    \"SimpleAgent\",
-    \"SimpleRag\",
-]
-"
-    write_file "$APP_DIR/ai/agents/__init__.py" ""
-    write_file "$APP_DIR/ai/rag/__init__.py" ""
-    write_file "$APP_DIR/ai/utils/__init__.py" ""
-    write_file "$APP_DIR/ai/agents/simple_agent.py" "from packages.ai import ModelClient
-
-
-class SimpleAgent:
-    def __init__(self, model_client: ModelClient) -> None:
-        self.model_client = model_client
-
-    def run(self, prompt: str, context: str) -> str:
-        return self.model_client.generate(prompt=prompt, context=context)
-"
-
-
-    write_file "$APP_DIR/ai/rag/simple_rag.py" "class SimpleRag:
-    def retrieve(self, query: str) -> str:
-        return f\"No vector store configured yet for query: {query}\"
 "
 
     write_file "$APP_DIR/frontend/package.json" "{
   \"name\": \"@apps/$APP_NAME-frontend\",
   \"private\": true,
   \"version\": \"0.1.0\",
-  \"main\": \"src/index.ts\",
-  \"module\": \"src/index.ts\",
-  \"types\": \"src/index.ts\",
   \"scripts\": {
     \"dev\": \"webpack serve --mode development\",
     \"build\": \"webpack --mode production\",
@@ -367,16 +395,6 @@ module.exports = {
 };
 "
 
-    create_dir "$APP_DIR/frontend/public"
-    create_dir "$APP_DIR/frontend/src"
-    create_dir "$APP_DIR/frontend/src/components"
-    create_dir "$APP_DIR/frontend/src/components/templates"
-    create_dir "$APP_DIR/frontend/src/components/organisms"
-    create_dir "$APP_DIR/frontend/src/components/molecules"
-    create_dir "$APP_DIR/frontend/src/components/atoms"
-    create_dir "$APP_DIR/frontend/src/utils"
-    create_dir "$APP_DIR/frontend/src/api"
-
     write_file "$APP_DIR/frontend/public/index.html" "<!doctype html>
 <html lang=\"en\">
   <head>
@@ -418,7 +436,7 @@ export function App({ sharedText }: AppProps) {
         <div className=\"header-row\">
           <div>
             <p className=\"eyebrow\">AI Project Starter</p>
-            <h1>$APP_NAME</h1>
+            <h1>$APP_TITLE</h1>
             <p className=\"shared-text\">{sharedText}</p>
           </div>
           <span className=\"status-pill\">FastAPI + React</span>
@@ -433,7 +451,7 @@ export function App({ sharedText }: AppProps) {
         />
 
         <button type=\"button\" onClick={() => void askBackend(prompt)} disabled={loading || !prompt.trim()}>
-          {loading ? \"Asking...\" : \"Ask backend\"}
+          {loading ? \"Asking...\" : \"Ask\"}
         </button>
 
         {response ? (
@@ -605,27 +623,5 @@ button:disabled {
   padding: 16px;
   background: #ffffff;
 }
-"
-
-    write_file "$APP_DIR/tests/test_health.py" "from fastapi.testclient import TestClient
-
-from apps.$PY_PACKAGE_NAME.backend.app.main import app
-
-
-def test_health() -> None:
-    response = TestClient(app).get(\"/api/health\")
-
-    assert response.status_code == 200
-    assert response.json()[\"status\"] == \"ok\"
-
-
-def test_ask_uses_configured_model_client() -> None:
-    response = TestClient(app).post(\"/api/ask\", json={\"prompt\": \"Hello\"})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body[\"provider\"] == \"mock\"
-    assert body[\"model\"] == \"mock-model\"
-    assert \"Starter answer\" in body[\"answer\"]
 "
 }
