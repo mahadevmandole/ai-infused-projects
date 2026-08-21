@@ -217,7 +217,7 @@ importers:
         specifier: ^2.10.6
         version: 2.10.6
 
-  apps/starter_ai_app/frontend:
+  apps/ai_studio/frontend:
     dependencies:
       '@ai-infused-projects/frontend':
         specifier: workspace:*

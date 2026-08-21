@@ -28,7 +28,7 @@ def test_main_module_imports_when_backend_is_started_from_backend_directory(monk
     monkeypatch.chdir(backend_dir)
     monkeypatch.setattr(sys, "path", [str(backend_dir)])
 
-    for module_name in ["app.main", "apps.starter_ai_app.backend.app.main"]:
+    for module_name in ["app.main", "apps.ai_studio.backend.app.main"]:
         sys.modules.pop(module_name, None)
 
     imported_main = importlib.import_module("app.main")

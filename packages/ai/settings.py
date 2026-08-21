@@ -6,7 +6,7 @@ from .model_client import ModelConfig, ProviderName
 
 
 class Settings(BaseModel):
-    app_name: str = Field(default="starter_ai_app")
+    app_name: str = Field(default="ai_studio")
     api_prefix: str = "/api"
     ai_provider: Literal["mock", "openai", "groq", "gemini"] = Field(default="mock")
     ai_temperature: float = Field(default=0.2)
