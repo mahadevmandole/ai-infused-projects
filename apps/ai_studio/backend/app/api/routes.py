@@ -20,7 +20,7 @@ class PromptResponse(BaseModel):
 
 @router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "starter_ai_app"}
+    return {"status": "ok", "service": "ai_studio"}
 
 
 @router.post("/ask")

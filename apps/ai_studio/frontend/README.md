@@ -1,4 +1,4 @@
-# starter_ai_app
+# ai_studio
 
 Runnable AI project boilerplate with a FastAPI backend, shared AI package, and React + TypeScript + SCSS frontend.
 
@@ -6,5 +6,5 @@ Runnable AI project boilerplate with a FastAPI backend, shared AI package, and R
 
 ```bash
 pnpm install
-pnpm --filter @apps/starter_ai_app-frontend dev
+pnpm --filter @apps/ai_studio-frontend dev
 ```
