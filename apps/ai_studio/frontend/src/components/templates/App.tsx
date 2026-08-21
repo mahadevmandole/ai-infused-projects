@@ -5,9 +5,11 @@ import {
   Message,
   MessageContent,
   MessageResponse,
-  PromptForm,
   PromptInput,
-  PromptSubmit,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
 } from "@ai-infused-projects/frontend";
 
 import { useAsk } from "../../api/useAsk";
@@ -34,7 +36,9 @@ export function App() {
           <ConversationContent>
             <Message from="assistant">
               <MessageContent>
-                <MessageResponse>Ask the backend a question and the answer will appear in this shared AI Elements surface.</MessageResponse>
+                <MessageResponse>
+                  {"Ask the backend a question and the answer will appear in this shared AI Elements surface."}
+                </MessageResponse>
               </MessageContent>
             </Message>
 
@@ -42,14 +46,14 @@ export function App() {
               <Message from="assistant">
                 <MessageContent>
                   <MessageResponse>
-                    <h2 className="mb-2 text-sm font-semibold">Answer</h2>
-                    <p>{response.answer}</p>
-                    <h2 className="mb-2 mt-4 text-sm font-semibold">Model</h2>
-                    <p>
-                      {response.provider} / {response.model}
-                    </p>
-                    <h2 className="mb-2 mt-4 text-sm font-semibold">Retrieved context</h2>
-                    <p>{response.context}</p>
+                    {[
+                      "## Answer",
+                      response.answer,
+                      "## Model",
+                      `${response.provider} / ${response.model}`,
+                      "## Retrieved context",
+                      response.context,
+                    ].join("\n\n")}
                   </MessageResponse>
                 </MessageContent>
               </Message>
@@ -57,20 +61,26 @@ export function App() {
           </ConversationContent>
         </Conversation>
 
-        <PromptForm
-          onSubmit={(event) => {
+        <PromptInput
+          onSubmit={(message, event) => {
             event.preventDefault();
-            void askBackend(prompt);
+            void askBackend(message.text);
           }}
         >
-          <PromptInput
-            aria-label="Prompt"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Ask anything..."
-          />
-          <PromptSubmit disabled={loading || !prompt.trim()}>{loading ? "Asking..." : "Ask"}</PromptSubmit>
-        </PromptForm>
+          <PromptInputBody>
+            <PromptInputTextarea
+              aria-label="Prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Ask anything..."
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputSubmit disabled={loading || !prompt.trim()} status={loading ? "submitted" : "ready"}>
+              {loading ? "Asking..." : "Ask"}
+            </PromptInputSubmit>
+          </PromptInputFooter>
+        </PromptInput>
       </section>
     </main>
   );
