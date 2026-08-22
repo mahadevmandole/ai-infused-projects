@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from app.main import app
+from app.api import routes
 from fastapi.testclient import TestClient
 
 
@@ -13,14 +14,24 @@ def test_health() -> None:
     assert response.json()["status"] == "ok"
 
 
-def test_ask_uses_configured_model_client() -> None:
-    response = TestClient(app).post("/api/ask", json={"prompt": "Hello"})
+def test_ask_uses_configured_model_client(monkeypatch) -> None:
+    monkeypatch.setattr(
+        routes.ai_service.rag,
+        "retrieve",
+        lambda url: "Title: Example\n\nPage contents:\nUseful page text.",
+    )
+    monkeypatch.setattr(
+        routes.ai_service.agent,
+        "run",
+        lambda prompt, context, system_prompt: "Starter answer for website summary.",
+    )
+
+    response = TestClient(app).post("/api/ask", json={"prompt": "https://example.com"})
 
     assert response.status_code == 200
     body = response.json()
-    assert body["provider"] == "mock"
-    assert body["model"] == "mock-model"
     assert "Starter answer" in body["answer"]
+    assert "Useful page text" in body["context"]
 
 
 def test_main_module_imports_when_backend_is_started_from_backend_directory(monkeypatch) -> None:

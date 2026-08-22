@@ -40,3 +40,37 @@ pnpm dev:app
 ```
 
 The frontend runs on `http://localhost:3000` and proxies `/api` to FastAPI on port `8000`.
+
+## Install Packages
+
+Install frontend packages with `pnpm`. Use `--filter` when the dependency belongs to one workspace package or app.
+
+```bash
+# Add a dependency to a specific frontend app
+pnpm --filter @apps/ai_studio-frontend add react-router
+
+# Add a dev dependency to a specific frontend app
+pnpm --filter @apps/ai_studio-frontend add -D prettier
+
+# Add a dependency to the shared frontend package
+pnpm --filter @ai-infused-projects/frontend add @radix-ui/react-dialog
+
+# Install or refresh all workspace dependencies
+pnpm install
+```
+
+Install backend Python packages with `uv` from the repository root. Python dependencies are shared through the repo-level `pyproject.toml`.
+
+```bash
+# Add a backend/runtime dependency
+uv add beautifulsoup4
+
+# Add multiple backend/runtime dependencies
+uv add beautifulsoup4 lxml
+
+# Add a development dependency
+uv add --dev pytest
+
+# Sync the local Python environment from pyproject.toml and uv.lock
+uv sync
+```

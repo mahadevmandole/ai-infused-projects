@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router";
 import { applyTheme, clientATheme } from "@ai-infused-projects/frontend";
 import "@ai-infused-projects/frontend/styles.css";
 
@@ -8,4 +9,8 @@ import "./styles.scss";
 applyTheme(clientATheme);
 
 const root = createRoot(document.getElementById("root") as HTMLElement);
-root.render(<App />);
+root.render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+);

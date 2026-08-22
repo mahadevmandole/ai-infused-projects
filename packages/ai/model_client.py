@@ -16,14 +16,14 @@ class ModelConfig:
 class ModelClient(Protocol):
     model: str
 
-    def generate(self, prompt: str, context: str) -> str: ...
+    def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str: ...
 
 
 class MockModelClient:
     def __init__(self, config: ModelConfig) -> None:
         self.model = config.model
 
-    def generate(self, prompt: str, context: str) -> str:
+    def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
         return f"Starter answer for '{prompt}'. Retrieved context: {context}"
 
 
@@ -39,14 +39,14 @@ class OpenAIModelClient:
         self.max_output_tokens = config.max_output_tokens
         self.client = OpenAI(api_key=config.api_key)
 
-    def generate(self, prompt: str, context: str) -> str:
+    def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
         response = self.client.responses.create(
             model=self.model,
-            input=_build_input(prompt=prompt, context=context),
+            input=_build_input(prompt=prompt, context=context, system_prompt=system_prompt),
             temperature=self.temperature,
             max_output_tokens=self.max_output_tokens,
         )
-        return response.output_text
+        return response.output_text or ""
 
 
 class GroqModelClient:
@@ -61,12 +61,17 @@ class GroqModelClient:
         self.max_output_tokens = config.max_output_tokens
         self.client = Groq(api_key=config.api_key)
 
-    def generate(self, prompt: str, context: str) -> str:
+    def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
                 {"role": "system", "content": "Answer using the provided context when useful."},
-                {"role": "user", "content": _build_input(prompt=prompt, context=context)},
+                {
+                    "role": "user",
+                    "content": _build_input(
+                        prompt=prompt, context=context, system_prompt=system_prompt
+                    ),
+                },
             ],
             temperature=self.temperature,
             max_tokens=self.max_output_tokens,
@@ -86,10 +91,10 @@ class GeminiModelClient:
         self.max_output_tokens = config.max_output_tokens
         self.client = genai.Client(api_key=config.api_key)
 
-    def generate(self, prompt: str, context: str) -> str:
+    def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
         response = self.client.models.generate_content(
             model=self.model,
-            contents=_build_input(prompt=prompt, context=context),
+            contents=_build_input(prompt=prompt, context=context, system_prompt=system_prompt),
         )
         return response.text or ""
 
@@ -104,5 +109,16 @@ def build_model_client(config: ModelConfig) -> ModelClient:
     return MockModelClient(config)
 
 
-def _build_input(prompt: str, context: str) -> str:
-    return f"Context:\n{context}\n\nPrompt:\n{prompt}"
+def _build_input(
+    prompt: str,
+    context: str,
+    system_prompt: str | None = None,
+) -> str:
+    modelInput = []
+
+    if system_prompt:
+        modelInput.append({"role": "system", "content": system_prompt})
+
+    modelInput.append({"role": "user", "content": f"Context:\n{context}\n\n{prompt}"})
+
+    return modelInput
