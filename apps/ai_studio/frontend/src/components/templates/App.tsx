@@ -1,86 +1,46 @@
-import { useState } from "react";
-import {
-  Conversation,
-  ConversationContent,
-  Message,
-  MessageContent,
-  MessageResponse,
-  PromptInput,
-  PromptInputBody,
-  PromptInputFooter,
-  PromptInputSubmit,
-  PromptInputTextarea,
-} from "@ai-infused-projects/frontend";
+import { Navigate, NavLink, Route, Routes } from "react-router";
 
-import { useAsk } from "../../api/useAsk";
+import { appRoutes, defaultRoute } from "../../routes/routes";
 
 export function App() {
-  const [prompt, setPrompt] = useState("What can this starter app do?");
-  const { askBackend, response, loading } = useAsk();
-
   return (
-    <main className="grid min-h-screen place-items-center bg-background p-8 text-foreground">
-      <section className="grid w-full max-w-3xl gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="mb-1.5 text-xs font-bold uppercase text-accent-foreground">AI Project Starter</p>
-            <h1 className="text-3xl font-bold tracking-normal">Demo App</h1>
-            <p className="text-sm text-muted-foreground">Webpack + React + TypeScript + Tailwind + shadcn/ui + Radix + AI Elements</p>
-          </div>
-          <span className="whitespace-nowrap rounded-full border border-border bg-accent px-3 py-2 text-sm text-accent-foreground">
-            FastAPI + React
-          </span>
+    <main className="grid min-h-screen grid-cols-[240px_1fr] bg-background text-foreground">
+      <aside className="border-r border-border bg-card">
+        <div className="border-b border-border p-5">
+          <p className="text-xs font-bold uppercase text-accent-foreground">AI Studio</p>
+          <h1 className="mt-1 text-lg font-semibold">Workspace</h1>
         </div>
 
-        <Conversation className="min-h-80 rounded-lg border border-border bg-card text-card-foreground">
-          <ConversationContent>
-            <Message from="assistant">
-              <MessageContent>
-                <MessageResponse>
-                  {"Ask the backend a question and the answer will appear in this shared AI Elements surface."}
-                </MessageResponse>
-              </MessageContent>
-            </Message>
+        <nav className="grid gap-1 p-3" aria-label="Primary">
+          {appRoutes.map((route) => (
+            <NavLink
+              className={({ isActive }) =>
+                [
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ].join(" ")
+              }
+              key={route.path}
+              to={route.path}
+            >
+              {route.label}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
 
-            {response ? (
-              <Message from="assistant">
-                <MessageContent>
-                  <MessageResponse>
-                    {[
-                      "## Answer",
-                      response.answer,
-                      "## Model",
-                      `${response.provider} / ${response.model}`,
-                      "## Retrieved context",
-                      response.context,
-                    ].join("\n\n")}
-                  </MessageResponse>
-                </MessageContent>
-              </Message>
-            ) : null}
-          </ConversationContent>
-        </Conversation>
+      <section className="min-w-0 p-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <Routes>
+            <Route element={<Navigate replace to={defaultRoute} />} path="/" />
+            {appRoutes.map((route) => {
+              const Page = route.element;
 
-        <PromptInput
-          onSubmit={(message, event) => {
-            event.preventDefault();
-            void askBackend(message.text);
-          }}
-        >
-          <PromptInputBody>
-            <PromptInputTextarea
-              aria-label="Prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Ask anything..."
-            />
-          </PromptInputBody>
-          <PromptInputFooter>
-            <PromptInputSubmit disabled={loading || !prompt.trim()} status={loading ? "submitted" : "ready"}>
-              {loading ? "Asking..." : "Ask"}
-            </PromptInputSubmit>
-          </PromptInputFooter>
-        </PromptInput>
+              return <Route element={<Page />} key={route.path} path={route.path} />;
+            })}
+            <Route element={<Navigate replace to={defaultRoute} />} path="*" />
+          </Routes>
+        </div>
       </section>
     </main>
   );

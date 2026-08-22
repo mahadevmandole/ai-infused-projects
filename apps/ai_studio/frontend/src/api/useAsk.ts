@@ -12,6 +12,9 @@ type AskResponse = {
 export function useAsk() {
   const [response, setResponse] = useState<AskResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const clearResponse = useCallback(() => {
+    setResponse(null);
+  }, []);
 
   const askBackend = useCallback(async (prompt: string) => {
     setLoading(true);
@@ -27,5 +30,5 @@ export function useAsk() {
     }
   }, []);
 
-  return { askBackend, response, loading };
+  return { askBackend, clearResponse, response, loading };
 }
