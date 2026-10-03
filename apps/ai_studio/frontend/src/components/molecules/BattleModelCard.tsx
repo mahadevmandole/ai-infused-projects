@@ -16,11 +16,10 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@ai-infused-projects/frontend";
 
 import { StatusPill } from "../atoms";
@@ -70,14 +69,7 @@ export function BattleModelCard({
   const [isAlertVisible, setIsAlertVisible] = useState(Boolean(error));
 
   useEffect(() => {
-    if (!error) {
-      setIsAlertVisible(false);
-      return;
-    }
-
-    setIsAlertVisible(true);
-    const timeoutId = window.setTimeout(() => setIsAlertVisible(false), 5000);
-    return () => window.clearTimeout(timeoutId);
+    setIsAlertVisible(Boolean(error));
   }, [error]);
 
   return (
@@ -88,22 +80,32 @@ export function BattleModelCard({
           <p className="text-xs text-muted-foreground">{selectedModel?.label ?? model}</p>
         </div>
         <StatusPill tone={status === "submitted" ? "warning" : voted ? "success" : "idle"}>
-          {status === "submitted" ? "Thinking" : voted ? "Voted" : `${voteCount} votes`}
+          {status === "submitted" ? "Generating" : voted ? "Selected" : `${voteCount} votes`}
         </StatusPill>
       </div>
 
-      <Select onValueChange={onModelChange} value={model}>
-        <SelectTrigger aria-label={`${sideLabel} model`}>
-          <SelectValue placeholder="Choose free tier model" />
-        </SelectTrigger>
-        <SelectContent>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button aria-label={`${sideLabel} model`} className="w-full justify-between text-left" size="sm" type="button" variant="outline">
+            <span className="truncate">{selectedModel?.label ?? "Select provider"}</span>
+            <span aria-hidden="true" className="ml-2 text-xs text-muted-foreground">
+              ▾
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[260px]">
           {models.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
+            <DropdownMenuItem
+              className="flex items-center justify-between gap-3"
+              key={option.value}
+              onSelect={() => onModelChange(option.value)}
+            >
+              <span>{option.label}</span>
+              {model === option.value ? <span className="text-xs text-primary">Selected</span> : null}
+            </DropdownMenuItem>
           ))}
-        </SelectContent>
-      </Select>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {showPromptInput ? (
         <PromptInput
@@ -133,7 +135,7 @@ export function BattleModelCard({
       <div className="grid min-h-56 gap-3 rounded-md border border-border bg-background">
         <div>
           <p className="border-b border-border px-3 py-2 text-xs font-medium uppercase text-muted-foreground">
-            Response
+            Output
           </p>
           {prompt ? <p className="line-clamp-2 px-3 pt-3 text-xs text-muted-foreground">{prompt}</p> : null}
         </div>
@@ -149,8 +151,8 @@ export function BattleModelCard({
             ) : null}
             {error && isAlertVisible ? (
               <Alert className="relative" variant="destructive">
-                <AlertTitle className="pr-7">Error</AlertTitle>
-                <AlertDescription className="pr-7">{error}</AlertDescription>
+                <AlertTitle className="pr-7">Provider error</AlertTitle>
+                <AlertDescription className="pr-7 whitespace-pre-line">{error}</AlertDescription>
                 <Button
                   aria-label="Dismiss error"
                   className="absolute right-2 top-2 h-6 w-6 p-0 text-current"
@@ -163,14 +165,14 @@ export function BattleModelCard({
                 </Button>
               </Alert>
             ) : null}
-            {!hasResult ? <p className="text-sm text-muted-foreground">The response will appear here after you send a prompt.</p> : null}
+            {!hasResult ? <p className="text-sm text-muted-foreground">Results will appear here once you run the comparison.</p> : null}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
       </div>
 
       <Button disabled={!hasResult || Boolean(voted)} onClick={onVote} type="button" variant={voted ? "secondary" : "outline"}>
-        {voted ? "Vote recorded" : "Vote for this response"}
+        {voted ? "Winner selected" : "Choose winner"}
       </Button>
     </section>
   );

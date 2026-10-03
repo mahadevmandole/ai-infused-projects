@@ -1,14 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { buildApiUrl } from "../../utils/config";
-import { BattleModelCard, type BattleModelOption, type BattlePromptStatus } from "../molecules";
-
-const modelOptions: BattleModelOption[] = [
-  { label: "Mock Model", value: "mock:mock-model" },
-  { label: "OpenAI GPT-4o Mini", value: "openai:gpt-4o-mini" },
-  { label: "Gemini 3.8 Flash", value: "gemini:gemini-3.8-flash" },
-  { label: "Groq Llama 3.3 70B Versatile", value: "groq:llama-3.3-70b-versatile" },
-];
+import { askBattleModels } from "../../api/battle";
+import { useAvailableModels } from "../../api/useAvailableModels";
+import { useVotes } from "../../api/useVotes";
+import { BattleModelCard, type BattlePromptStatus } from "../molecules";
 
 type LaneKey = "left" | "right";
 
@@ -23,36 +18,56 @@ interface BattleLaneState {
 
 const initialLaneState: Record<LaneKey, BattleLaneState> = {
   left: {
-    model: "mock:mock-model",
+    model: "openai:gpt-4o-mini",
     status: "ready",
     votes: 0,
   },
   right: {
-    model: "gemini:gemini-3.8-flash",
+    model: "groq:llama-3.3-70b-versatile",
     status: "ready",
     votes: 0,
   },
 };
 
-async function askBattleModels(prompt: string, models: string[]) {
-  const result = await fetch(buildApiUrl("/api/battle"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ models, prompt }),
-  });
-
-  if (!result.ok) {
-    const detail = await result.text();
-    throw new Error(detail || "Model request failed.");
-  }
-
-  return (await result.json()) as { answers: Record<string, string> };
-}
-
 export function ModelBattleWorkspace() {
   const [lanes, setLanes] = useState(initialLaneState);
   const [sharedPrompt, setSharedPrompt] = useState("");
   const [votedLane, setVotedLane] = useState<LaneKey | null>(null);
+  const { availableModels } = useAvailableModels();
+  const { castVote, voteTotals } = useVotes();
+
+  useEffect(() => {
+    if (!availableModels.length) {
+      return;
+    }
+
+    const defaultLeftModel = availableModels[0]?.value ?? initialLaneState.left.model;
+    const defaultRightModel = availableModels[1]?.value ?? availableModels[0]?.value ?? initialLaneState.right.model;
+
+    setLanes((current) => ({
+      left: {
+        ...current.left,
+        model: availableModels.some((model) => model.value === current.left.model)
+          ? current.left.model
+          : defaultLeftModel,
+        votes: voteTotals[current.left.model] ?? current.left.votes,
+      },
+      right: {
+        ...current.right,
+        model: availableModels.some((model) => model.value === current.right.model)
+          ? current.right.model
+          : defaultRightModel,
+        votes: voteTotals[current.right.model] ?? current.right.votes,
+      },
+    }));
+  }, [availableModels, voteTotals]);
+
+  useEffect(() => {
+    setLanes((current) => ({
+      left: { ...current.left, votes: voteTotals[current.left.model] ?? current.left.votes },
+      right: { ...current.right, votes: voteTotals[current.right.model] ?? current.right.votes },
+    }));
+  }, [voteTotals]);
 
   const updateLane = (lane: LaneKey, nextState: Partial<BattleLaneState>) => {
     setLanes((current) => ({
@@ -92,17 +107,21 @@ export function ModelBattleWorkspace() {
 
     try {
       const response = await askBattleModels(trimmedPrompt, [leftModel, rightModel]);
+      const leftError = response.errors?.[leftModel];
+      const rightError = response.errors?.[rightModel];
 
       setLanes((current) => ({
         left: {
           ...current.left,
-          answer: response.answers[leftModel] ?? "No answer returned.",
+          answer: leftError ? undefined : response.answers[leftModel] ?? "No answer returned.",
+          error: leftError,
           prompt: trimmedPrompt,
           status: "ready",
         },
         right: {
           ...current.right,
-          answer: response.answers[rightModel] ?? "No answer returned.",
+          answer: rightError ? undefined : response.answers[rightModel] ?? "No answer returned.",
+          error: rightError,
           prompt: trimmedPrompt,
           status: "ready",
         },
@@ -117,19 +136,34 @@ export function ModelBattleWorkspace() {
     }
   };
 
-  const voteForLane = (lane: LaneKey) => {
+  const voteForLane = async (lane: LaneKey) => {
     if (votedLane) {
       return;
     }
 
+    const selectedModel = lanes[lane].model;
     setVotedLane(lane);
-    setLanes((current) => ({
-      ...current,
-      [lane]: {
-        ...current[lane],
-        votes: current[lane].votes + 1,
-      },
-    }));
+
+    try {
+      const response = await castVote(selectedModel);
+      setLanes((current) => ({
+        ...current,
+        [lane]: {
+          ...current[lane],
+          votes: response.all_votes[current[lane].model] ?? 0,
+        },
+      }));
+    } catch (error) {
+      setVotedLane(null);
+      const message = error instanceof Error ? error.message : "Vote could not be saved.";
+      setLanes((current) => ({
+        ...current,
+        [lane]: {
+          ...current[lane],
+          error: message,
+        },
+      }));
+    }
   };
 
   const isSubmitting = lanes.left.status === "submitted" || lanes.right.status === "submitted";
@@ -137,12 +171,12 @@ export function ModelBattleWorkspace() {
   return (
     <div className="grid gap-4">
       <div className="rounded-lg border border-border bg-card p-4">
-        <label className="mb-2 block text-sm font-medium">Shared prompt</label>
+        <label className="mb-2 block text-sm font-medium">Business question</label>
         <textarea
           className="min-h-28 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
           disabled={isSubmitting}
           onChange={(event) => setSharedPrompt(event.target.value)}
-          placeholder="Ask both models the same question..."
+          placeholder="Ask both AI providers the same business question..."
           value={sharedPrompt}
         />
         <div className="mt-3 flex justify-end">
@@ -152,7 +186,7 @@ export function ModelBattleWorkspace() {
             onClick={submitSharedPrompt}
             type="button"
           >
-            {isSubmitting ? "Sending..." : "Compare answers"}
+            {isSubmitting ? "Generating results..." : "Run comparison"}
           </button>
         </div>
       </div>
@@ -163,13 +197,13 @@ export function ModelBattleWorkspace() {
           disabled={lanes.left.status === "submitted"}
           error={lanes.left.error}
           model={lanes.left.model}
-          models={modelOptions}
-          onModelChange={(model) => updateLane("left", { model })}
+          models={availableModels}
+          onModelChange={(model) => updateLane("left", { model, votes: voteTotals[model] ?? 0 })}
           onSubmit={() => undefined}
           onVote={() => voteForLane("left")}
           prompt={lanes.left.prompt}
           showPromptInput={false}
-          sideLabel="Model A"
+          sideLabel="Option A"
           status={lanes.left.status}
           voteCount={lanes.left.votes}
           voted={votedLane === "left"}
@@ -179,13 +213,13 @@ export function ModelBattleWorkspace() {
           disabled={lanes.right.status === "submitted"}
           error={lanes.right.error}
           model={lanes.right.model}
-          models={modelOptions}
-          onModelChange={(model) => updateLane("right", { model })}
+          models={availableModels}
+          onModelChange={(model) => updateLane("right", { model, votes: voteTotals[model] ?? 0 })}
           onSubmit={() => undefined}
           onVote={() => voteForLane("right")}
           prompt={lanes.right.prompt}
           showPromptInput={false}
-          sideLabel="Model B"
+          sideLabel="Option B"
           status={lanes.right.status}
           voteCount={lanes.right.votes}
           voted={votedLane === "right"}
