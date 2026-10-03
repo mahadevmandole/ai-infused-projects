@@ -14,11 +14,11 @@ settings = Settings(
     ai_temperature=float(os.getenv("AI_TEMPERATURE", "0.2")),
     ai_max_output_tokens=int(os.getenv("AI_MAX_OUTPUT_TOKENS", "800")),
     openai_api_key=os.getenv("OPENAI_API_KEY"),
-    openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+    openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
     groq_api_key=os.getenv("GROQ_API_KEY"),
     groq_model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
     gemini_api_key=os.getenv("GEMINI_API_KEY"),
-    gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
 )
 
 __all__ = ["settings"]
