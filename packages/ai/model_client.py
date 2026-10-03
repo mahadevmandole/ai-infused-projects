@@ -85,16 +85,24 @@ class GeminiModelClient:
             raise ValueError("GEMINI_API_KEY is required when AI_PROVIDER=gemini.")
 
         from google import genai
+        from google.genai import types
 
         self.model = config.model
         self.temperature = config.temperature
         self.max_output_tokens = config.max_output_tokens
         self.client = genai.Client(api_key=config.api_key)
+        self.types = types
 
     def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
+        user_content = f"Context:\n{context}\n\n{prompt}"
+        config = None
+        if system_prompt:
+            config = self.types.GenerateContentConfig(system_instruction=system_prompt)
+
         response = self.client.models.generate_content(
             model=self.model,
-            contents=_build_input(prompt=prompt, context=context, system_prompt=system_prompt),
+            contents=user_content,
+            config=config,
         )
         return response.text or ""
 

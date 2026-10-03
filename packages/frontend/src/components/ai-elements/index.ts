@@ -1,4 +1,4 @@
-export { Conversation, ConversationContent } from "./conversation";
+export { Conversation, ConversationContent, ConversationScrollButton } from "./conversation";
 export {
   Message,
   MessageAction,

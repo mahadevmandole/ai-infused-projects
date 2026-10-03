@@ -12,11 +12,11 @@ class Settings(BaseModel):
     ai_temperature: float = Field(default=0.2)
     ai_max_output_tokens: int = Field(default=800)
     openai_api_key: str | None = None
-    openai_model: str = Field(default="gpt-4.1-mini")
+    openai_model: str = Field(default="gpt-4o-mini")
     groq_api_key: str | None = None
     groq_model: str = Field(default="llama-3.3-70b-versatile")
     gemini_api_key: str | None = None
-    gemini_model: str = Field(default="gemini-2.5-flash")
+    gemini_model: str = Field(default="gemini-3.8-flash")
 
     def model_config_for_provider(self) -> ModelConfig:
         provider: ProviderName = self.ai_provider

@@ -1,3 +1,4 @@
+export { Alert, AlertDescription, AlertTitle } from "./alert";
 export { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 export { Button, buttonVariants } from "./button";
 export type { ButtonProps } from "./button";
