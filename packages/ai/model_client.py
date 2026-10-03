@@ -42,7 +42,11 @@ class OpenAIModelClient:
     def generate(self, prompt: str, context: str, system_prompt: str | None = None) -> str:
         response = self.client.responses.create(
             model=self.model,
-            input=_build_input(prompt=prompt, context=context, system_prompt=system_prompt),
+            input=_build_openai_input(
+                prompt=prompt,
+                context=context,
+                system_prompt=system_prompt,
+            ),
             temperature=self.temperature,
             max_output_tokens=self.max_output_tokens,
         )
@@ -65,12 +69,13 @@ class GroqModelClient:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": "Answer using the provided context when useful."},
+                {
+                    "role": "system",
+                    "content": system_prompt or "Answer using the provided context when useful.",
+                },
                 {
                     "role": "user",
-                    "content": _build_input(
-                        prompt=prompt, context=context, system_prompt=system_prompt
-                    ),
+                    "content": _build_user_content(prompt=prompt, context=context),
                 },
             ],
             temperature=self.temperature,
@@ -117,16 +122,20 @@ def build_model_client(config: ModelConfig) -> ModelClient:
     return MockModelClient(config)
 
 
-def _build_input(
+def _build_user_content(prompt: str, context: str) -> str:
+    return f"Context:\n{context}\n\n{prompt}"
+
+
+def _build_openai_input(
     prompt: str,
     context: str,
     system_prompt: str | None = None,
-) -> str:
-    modelInput = []
+) -> list[dict[str, str]]:
+    input_messages = []
 
     if system_prompt:
-        modelInput.append({"role": "system", "content": system_prompt})
+        input_messages.append({"role": "system", "content": system_prompt})
 
-    modelInput.append({"role": "user", "content": f"Context:\n{context}\n\n{prompt}"})
+    input_messages.append({"role": "user", "content": _build_user_content(prompt, context)})
 
-    return modelInput
+    return input_messages

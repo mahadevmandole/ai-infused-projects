@@ -14,9 +14,9 @@ class Settings(BaseModel):
     openai_api_key: str | None = None
     openai_model: str = Field(default="gpt-4o-mini")
     groq_api_key: str | None = None
-    groq_model: str = Field(default="llama-3.3-70b-versatile")
+    groq_model: str = Field(default="llama-3.1-8b-instant")
     gemini_api_key: str | None = None
-    gemini_model: str = Field(default="gemini-3.8-flash")
+    gemini_model: str = Field(default="gemini-2.0-flash")
 
     def model_config_for_provider(self) -> ModelConfig:
         provider: ProviderName = self.ai_provider
